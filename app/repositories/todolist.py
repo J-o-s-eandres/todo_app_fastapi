@@ -1,7 +1,6 @@
-# app/repositories/todolist.py
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from app.models import TodoList  # tu modelo SQLAlchemy
+from app.models.todolist import TodoList  
 from app.schemas.todolist import TodoListCreate, TodoListUpdate
 
 class TodoListRepository:

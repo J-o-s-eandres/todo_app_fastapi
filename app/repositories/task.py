@@ -1,14 +1,41 @@
-# app/models/task.py
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
-from sqlalchemy.orm import relationship
-from app.infrastructure.db import Base
+# app/repositories/task.py
+from typing import List, Optional
+from sqlalchemy.orm import Session
+from app.models.task import Task
+from app.schemas.task import TaskCreate, TaskUpdate
 
-class Task(Base):
-    __tablename__ = "tasks"
+class TaskRepository:
+    def __init__(self, db: Session):
+        self.db = db
 
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(255), nullable=False)
-    completed = Column(Boolean, default=False)
-    todo_list_id = Column(Integer, ForeignKey("todolists.id"))
+    def get_all(self) -> List[Task]:
+        return self.db.query(Task).all()
 
-    todolist = relationship("TodoList", back_populates="tasks")
+    def get_by_id(self, task_id: int) -> Optional[Task]:
+        return self.db.query(Task).filter(Task.id == task_id).first()
+
+    def create(self, task_create: TaskCreate) -> Task:
+        db_task = Task(**task_create.dict())
+        self.db.add(db_task)
+        self.db.commit()
+        self.db.refresh(db_task)
+        return db_task
+
+    def update(self, task_id: int, task_update: TaskUpdate) -> Optional[Task]:
+        db_task = self.get_by_id(task_id)
+        if not db_task:
+            return None
+        update_data = task_update.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_task, key, value)
+        self.db.commit()
+        self.db.refresh(db_task)
+        return db_task
+
+    def delete(self, task_id: int) -> bool:
+        db_task = self.get_by_id(task_id)
+        if not db_task:
+            return False
+        self.db.delete(db_task)
+        self.db.commit()
+        return True
